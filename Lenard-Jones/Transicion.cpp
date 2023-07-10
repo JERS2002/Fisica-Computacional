@@ -12,9 +12,9 @@ using namespace std;
 
 
 #define ITER_MAX 30000
-#define L 10
-#define mindist 0.9
-#define N 20
+#define L 4
+#define mindist 0.7
+#define N 16
 #define h 0.002
 
 //Definimos funciones para calcular aceleracion en tiempo t con ley de Gravitacion de Newton
@@ -181,6 +181,33 @@ r[0][1]=pos(gen);
 }
 }
 
+//INICIALIZAMOS POSICIONES CUADRADO
+void inicializar_posicion_cuadrado (double r[N][2]){
+    for (int i = 0; i < N; i++) {
+       r[i][0]=i/4+0.5;
+       r[i][1]=i%4+0.5;
+       }
+        
+}
+//Inicializamos posicion hexagono
+void leer_matriz(double matriz[N][2], const string& nombrearch) {
+    ifstream infile(nombrearch);
+    if (!infile) {
+        cerr << "No se pudo abrir '" << nombrearch << "para leer" << endl;
+        return;
+    }
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < 2; j++) {
+            infile >> matriz[i][j];
+        }
+    }
+    infile.close();
+}
+
+
+
+
+
 //Inicializar posicion prueba
 void inicializar_posicionprueba (double r[N][2]){
     r[0][0]=9.8;
@@ -190,17 +217,23 @@ void inicializar_posicionprueba (double r[N][2]){
 }
 
 //INICIALIZAMOS VELOCIDADES ALEATORIAS
-void inicializar_velocidad (double v[N][2], double v0){
+void inicializar_velocidad (double v[N][2]){
         random_device rd;
     mt19937 gen(rd());
     uniform_real_distribution<double> vel(0.0, 2.0);
     double angulo;
-    
     for (int i = 0; i < N; i++) {   
      angulo=M_PI*vel(gen);
-    v[i][0]=v0*cos(angulo);
-    v[i][1]=v0* sin(angulo);
+    v[i][0]=cos(angulo);
+    v[i][1]=sin(angulo);
 
+}
+}
+//INICIALIZAMOS EN REPOSO (v=0)
+void inicializar_velocidad_reposo (double v[N][2]){  
+    for (int i = 0; i < N; i++) {   
+    v[i][0]=0;
+    v[i][1]=0;
 }
 }
 
@@ -226,20 +259,18 @@ v_i (w,a,v);
 //FUNCION PRINCIPAL
 int main ()
 {
-    double r[N][2], a[N][2], v[N][2], w[N][2], Vi[N], Ti[N], t, v0, TEMP_media;
-    //VELOCIDAD INICIAL
-    v0=4;
+    double r[N][2], a[N][2], v[N][2], w[N][2], Vi[N], Ti[N], t, TEMP_media;
     //PASO TEMPORAL
     TEMP_media=0;
-    
 
-//GENERAMOS POSICIONES Y VELOCIDADES INICIALES ALEATORIAS
+//INICIAMOS posicion y velocidad
+//leer_matriz(r, "INICIAR_HEXAGONO.txt");
 inicializar_posicion_aleatoria(r);
-inicializar_velocidad(v,v0);
+inicializar_velocidad_reposo(v);
 //Evaluamos aceleracion en t=0
 aceleracion (r,a);
 // Escribimos la posicion inicial en el archivo donde guardaremos las posiciones
-    ofstream file("posicionesv4.dat");
+    ofstream file("transicioncuadrado.dat");
     if (!file) {
         cerr << "No se pudo abrir " << "posiciones.dat" << "para leer" << endl;
     }
@@ -261,50 +292,16 @@ ofstream fich("datos.dat");
      fich << endl; 
 
 //Abrimos fichero para escribir energia
-ofstream fichenerg("energiasv4.dat");
-    if (!fichenerg) {
+ofstream fichtemperatura("temperaturacuadrado.dat");
+    if (!fichtemperatura) {
         cerr << "No se pudo abrir " << "energias.dat" << "para leer" << endl;
     }
 //Escribimos energia en t=0
 V_i(r, Vi);
 T_i (v, Ti);
-fichenerg <<"0 " << Ttot(Ti) <<" " << Vtot(Vi) << " " << Ttot(Ti)+Vtot(Vi) << endl;
+fichtemperatura<<"0 " << Ttot(Ti)/N << endl;
 
- //Abrimos fichero para escribir velocidades
-ofstream fichvel0tot("vel0tot4.dat");
-    if (!fichvel0tot) {
-        cerr << "No se pudo abrir " << "vel0.dat" << "para leer" << endl;
-    }
-     for (int i = 0; i < N; i++) {
-    fichvel0tot << sqrt(v[i][0]*v[i][0]+v[i][1]*v[i][1]) <<endl;
-     }
-    ofstream fichveltot("veltot4.dat");
-    if (!fichveltot) {
-        cerr << "No se pudo abrir " << "velocidades.dat" << "para leer" << endl;
-    }
- ofstream fichvel0x("vel0x4.dat");
-    if (!fichvel0x) {
-        cerr << "No se pudo abrir " << "vel0.dat" << "para leer" << endl;
-    }
-     for (int i = 0; i < N; i++) {
-    fichvel0x << v[i][0] <<endl;
-     }
-    ofstream fichvelx("velx4.dat");
-    if (!fichvelx) {
-        cerr << "No se pudo abrir " << "velocidades.dat" << "para leer" << endl;
-    }
-ofstream fichvel0y("vel0y4.dat");
-    if (!fichvel0y) {
-        cerr << "No se pudo abrir " << "vel0.dat" << "para leer" << endl;
-    }
-     for (int i = 0; i < N; i++) {
-    fichvel0y << v[i][1] <<endl;
-     }
-    ofstream fichvely("vely4.dat");
-    if (!fichvely) {
-        cerr << "No se pudo abrir " << "velocidades.dat" << "para leer" << endl;
-    }
-
+ 
 //ITERACIONES PARA SACAR LAS POSICIONES
 
 for(int i=1; i<=ITER_MAX; i++){
@@ -314,45 +311,51 @@ for(int i=1; i<=ITER_MAX; i++){
 
 
 //ESCRIBIMOS POSICIONES
-if (i%10==0)
-{
+if((i%10)==0){
 for (int j = 0; j < N; j++) {
 
 file << r[j][0] << ", " << r[j][1] << endl;
 }
 file << endl; 
 }
-
   for (int j= 0; j < N; j++) {
 
      fich<< t << " "<<  r[j][0] << ", " << r[j][1] <<  ", "  << v[j][0] << ", " << v[j][1] <<  ", " << a[j][0] << ", " << a[j][1] <<endl;
      }
      fich << endl; 
 
-//ESCRIBIMOS ENERGIAS
-V_i(r, Vi);
-T_i (v, Ti);
-fichenerg <<t << " " << Ttot(Ti) <<" " << Vtot(Vi) << " " << Ttot(Ti)+Vtot(Vi) << endl;
+//Reducimos temperatura
 
-//ESCRIBIMOS VELOCIDADES
-    if (t>=20.0 && t<=50.0){
-     for (int j = 0; j < N; j++) {
-    fichveltot << sqrt(v[j][0]*v[j][0]+v[j][1]*v[j][1]) <<endl;
-    fichvelx << v[j][0] <<endl;
-    fichvely << v[j][1] <<endl;
-     }
+
+if (t>=10 && ((static_cast<int>(t*1000))% 5000)==0)
+{
+    for (int j = 0; j <N; j++)
+    {
+        v[j][0]=v[j][0]/2;
+        v[j][1]=v[j][1]/2;
     }
-
-//PROMEDIAMOS VELOCIDAD
-if (t>=20.0 && t<=50.0){
-TEMP_media=TEMP_media+Ttot(Ti)/N;
+    
 }
+
+
+//ESCRIBIMOS temperatura en funcion del tiempo
+
+T_i (v, Ti);
+TEMP_media=TEMP_media+Ttot(Ti)/N;
+if (((static_cast<int>(t*1000))% 400)==0)
+{
+   TEMP_media=TEMP_media/200;
+   fichtemperatura <<t << " " << Ttot(Ti)/N <<endl;
+   TEMP_media=0;
+}
+
+
+
+
 //t=t+h e iteramos
 }
 
-//Sacamos temperatura media entre t=20 y t=50
-TEMP_media=TEMP_media/15001;
-cout <<TEMP_media;
+
 return 0;
 
 }
